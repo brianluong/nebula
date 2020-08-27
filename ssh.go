@@ -11,11 +11,16 @@ import (
 	"reflect"
 	"runtime/pprof"
 	"strings"
+	"strconv"
 	"syscall"
 
 	"github.com/sirupsen/logrus"
 	"github.com/slackhq/nebula/sshd"
 )
+
+type sshPrintConntrackFlags struct {
+	NumResults string
+}
 
 type sshListHostMapFlags struct {
 	Json   bool
@@ -190,6 +195,14 @@ func attachCommands(ssh *sshd.SSHServer, hostMap *HostMap, pendingHostMap *HostM
 		},
 		Callback: func(fs interface{}, a []string, w sshd.StringWriter) error {
 			return sshListLighthouseMap(lightHouse, fs, w)
+		},
+	})
+
+	ssh.RegisterCommand(&sshd.Command{
+		Name:             "list-conntrack",
+		ShortDescription: "List entries in conntrack",
+		Callback: func(fs interface{}, a []string, w sshd.StringWriter) error {
+			return sshPrintConntrack(ifce, fs, a, w)
 		},
 	})
 
@@ -429,6 +442,26 @@ func sshListLighthouseMap(lightHouse *LightHouse, a interface{}, w sshd.StringWr
 	}
 
 	return nil
+}
+
+func sshPrintConntrack(ifce *Interface, fs interface{}, a []string, w sshd.StringWriter) error {
+	numResults, err := strconv.Atoi(a[0])
+	if err != nil {
+		err = w.WriteLine(fmt.Sprintf("Unable to parse first argument as integer %s", err))
+	}
+
+	i := 0
+	for k, v := range ifce.firewall.Conntrack.Conns {
+		if i >= numResults {
+			return err
+		}
+		fp := fmt.Sprintf("%+v", k)
+		conn := fmt.Sprintf("%+v", v)
+		w.WriteLine(fmt.Sprintf("%s: %s", fp, conn))
+		i++
+	}
+
+	return err
 }
 
 func sshStartCpuProfile(fs interface{}, a []string, w sshd.StringWriter) error {
