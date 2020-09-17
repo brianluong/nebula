@@ -5,18 +5,18 @@ export GO111MODULE
 
 LDFLAGS = -X main.Build=$(BUILD_NUMBER)
 
-ALL_LINUX = linux-amd64 \
-	linux-386 \
-	linux-ppc64le \
-	linux-arm-5 \
-	linux-arm-6 \
-	linux-arm-7 \
-	linux-arm64 \
-	linux-mips \
-	linux-mipsle \
-	linux-mips64 \
-	linux-mips64le \
-	linux-mips-softfloat
+ALL_LINUX = linux-amd64 # \
+#	linux-386 \
+#	linux-ppc64le \
+#	linux-arm-5 \
+#	linux-arm-6 \
+#	linux-arm-7 \
+#	linux-arm64 \
+#	linux-mips \
+#	linux-mipsle \
+#	linux-mips64 \
+#	linux-mips64le \
+#	linux-mips-softfloat
 
 ALL = $(ALL_LINUX) \
 	darwin-amd64 \
@@ -41,8 +41,8 @@ bin-freebsd: build/freebsd-amd64/nebula build/freebsd-amd64/nebula-cert
 	mv $? .
 
 bin:
-	go build -trimpath -ldflags "$(LDFLAGS)" -o ./nebula ${NEBULA_CMD_PATH}
-	go build -trimpath -ldflags "$(LDFLAGS)" -o ./nebula-cert ./cmd/nebula-cert
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o ./nebula ${NEBULA_CMD_PATH}
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o ./nebula-cert ./cmd/nebula-cert
 
 install:
 	go install -trimpath -ldflags "$(LDFLAGS)" ${NEBULA_CMD_PATH}
@@ -57,12 +57,12 @@ build/linux-mips-softfloat/%: LDFLAGS += -s -w
 build/%/nebula: .FORCE
 	GOOS=$(firstword $(subst -, , $*)) \
 		GOARCH=$(word 2, $(subst -, ,$*)) $(GOENV) \
-		go build -trimpath -o $@ -ldflags "$(LDFLAGS)" ${NEBULA_CMD_PATH}
+		CGO_ENABLED=0 go build -trimpath -o $@ -ldflags "$(LDFLAGS)" ${NEBULA_CMD_PATH}
 
 build/%/nebula-cert: .FORCE
 	GOOS=$(firstword $(subst -, , $*)) \
 		GOARCH=$(word 2, $(subst -, ,$*)) $(GOENV) \
-		go build -trimpath -o $@ -ldflags "$(LDFLAGS)" ./cmd/nebula-cert
+		CGO_ENABLED=0 go build -trimpath -o $@ -ldflags "$(LDFLAGS)" ./cmd/nebula-cert
 
 build/%/nebula.exe: build/%/nebula
 	mv $< $@
@@ -100,7 +100,7 @@ bench-cpu-long:
 proto: nebula.pb.go cert/cert.pb.go
 
 nebula.pb.go: nebula.proto .FORCE
-	go build github.com/golang/protobuf/protoc-gen-go
+	CGO_ENABLED=0 go build github.com/golang/protobuf/protoc-gen-go
 	PATH="$(PWD):$(PATH)" protoc --go_out=. $<
 	rm protoc-gen-go
 
